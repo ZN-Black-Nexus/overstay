@@ -1,0 +1,10 @@
+# Rust
+/rust/target/
+
+# Godot
+/godot/.godot/
+/godot/export_presets.cfg
+*.translation
+
+# OS
+.DS_Store
