@@ -4,10 +4,16 @@ compatibility_minimum = "4.7"
 reloadable = true
 
 [libraries]
+; x86_64 Linux points straight at the Rust build output for zero-friction local
+; editor development. Every other platform/arch points inside the project (res://bin/)
+; because exported builds can only bundle files that live under the project root —
+; CI copies the freshly built library there before running the export.
 linux.debug.x86_64 = "res://../rust/target/debug/liboverstay.so"
 linux.release.x86_64 = "res://../rust/target/release/liboverstay.so"
-windows.debug.x86_64 = "res://../rust/target/debug/overstay.dll"
-windows.release.x86_64 = "res://../rust/target/release/overstay.dll"
+linux.debug.arm64 = "res://bin/linux-arm64/liboverstay.so"
+linux.release.arm64 = "res://bin/linux-arm64/liboverstay.so"
+windows.debug.x86_64 = "res://bin/windows-x86_64/overstay.dll"
+windows.release.x86_64 = "res://bin/windows-x86_64/overstay.dll"
 macos.debug = "res://../rust/target/debug/liboverstay.dylib"
 macos.release = "res://../rust/target/release/liboverstay.dylib"
 macos.debug.arm64 = "res://../rust/target/debug/liboverstay.dylib"

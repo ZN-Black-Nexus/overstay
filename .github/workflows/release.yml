@@ -1,0 +1,112 @@
+name: Release Build
+
+# Pushing a tag like "v0.1.0" builds debug binaries for arm64 Linux (.deb) and
+# amd64 Windows (.exe) and publishes them as a GitHub pre-release. This is the
+# standing way to get a testable build onto a device: tag it, wait for this
+# workflow, grab the artifacts from the release.
+
+on:
+  push:
+    tags:
+      - "v*"
+
+env:
+  GODOT_VERSION: 4.7.2
+
+permissions:
+  contents: write
+
+jobs:
+  linux-arm64:
+    runs-on: ubuntu-24.04-arm
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Build gdextension
+        working-directory: rust
+        run: cargo build
+
+      - name: Stage library for export
+        run: |
+          mkdir -p godot/bin/linux-arm64
+          cp rust/target/debug/liboverstay.so godot/bin/linux-arm64/
+
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: ${{ env.GODOT_VERSION }}
+          use-dotnet: false
+          include-templates: true
+
+      - name: Export Linux arm64 (debug)
+        working-directory: godot
+        run: |
+          mkdir -p ../build/linux-arm64
+          godot --headless --export-debug "Linux" ../build/linux-arm64/overstay
+
+      - name: Package .deb
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          chmod +x build/linux-arm64/overstay
+          ./scripts/package-deb.sh "$version" build/linux-arm64/overstay "build/overstay_${version}_arm64.deb"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-arm64-deb
+          path: build/*.deb
+
+  windows-amd64:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Build gdextension
+        working-directory: rust
+        run: cargo build
+
+      - name: Stage library for export
+        run: |
+          mkdir -p godot/bin/windows-x86_64
+          cp rust/target/debug/overstay.dll godot/bin/windows-x86_64/
+
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: ${{ env.GODOT_VERSION }}
+          use-dotnet: false
+          include-templates: true
+
+      - name: Export Windows amd64 (debug)
+        working-directory: godot
+        run: |
+          mkdir -p ../build/windows-amd64
+          godot --headless --export-debug "Windows Desktop" ../build/windows-amd64/Overstay.exe
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-amd64-exe
+          path: build/windows-amd64/Overstay.exe
+
+  release:
+    needs: [linux-arm64, windows-amd64]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          prerelease: true
+          generate_release_notes: true
+          files: |
+            artifacts/linux-arm64-deb/*.deb
+            artifacts/windows-amd64-exe/Overstay.exe

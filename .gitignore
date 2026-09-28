@@ -3,8 +3,11 @@
 
 # Godot
 /godot/.godot/
-/godot/export_presets.cfg
+/godot/bin/
 *.translation
+
+# Build output
+/build/
 
 # OS
 .DS_Store
