@@ -51,12 +51,14 @@ jobs:
           # so tolerate the exit code and verify the file directly instead.
           godot --headless --export-debug "Linux" ../build/linux-arm64/overstay || true
           test -s ../build/linux-arm64/overstay
+          echo "Export directory contents:"
+          find ../build/linux-arm64 -type f
 
       - name: Package .deb
         run: |
           version="${GITHUB_REF_NAME#v}"
           chmod +x build/linux-arm64/overstay
-          ./scripts/package-deb.sh "$version" build/linux-arm64/overstay "build/overstay_${version}_arm64.deb"
+          ./scripts/package-deb.sh "$version" build/linux-arm64 "build/overstay_${version}_arm64.deb"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -95,11 +97,18 @@ jobs:
           # Same known Godot crash-on-exit as the Linux export — see godotengine/godot#99284.
           godot --headless --export-debug "Windows Desktop" ../build/windows-amd64/Overstay.exe || true
           test -s ../build/windows-amd64/Overstay.exe
+          echo "Export directory contents:"
+          find ../build/windows-amd64 -type f
+
+      - name: Zip export directory
+        run: |
+          cd build/windows-amd64
+          7z a ../overstay-windows-amd64.zip .
 
       - uses: actions/upload-artifact@v4
         with:
-          name: windows-amd64-exe
-          path: build/windows-amd64/Overstay.exe
+          name: windows-amd64-zip
+          path: build/overstay-windows-amd64.zip
 
   release:
     needs: [linux-arm64, windows-amd64]
@@ -115,4 +124,4 @@ jobs:
           generate_release_notes: true
           files: |
             artifacts/linux-arm64-deb/*.deb
-            artifacts/windows-amd64-exe/Overstay.exe
+            artifacts/windows-amd64-zip/overstay-windows-amd64.zip

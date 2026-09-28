@@ -24,8 +24,9 @@ Then open `godot/project.godot` in the Godot 4.7 editor (or run
 ## Getting a test build
 
 Push a tag matching `v*` (e.g. `v0.1.0`) and [.github/workflows/release.yml](.github/workflows/release.yml)
-builds a debug arm64 Linux `.deb` and a debug amd64 Windows `.exe`, then
-publishes both as a GitHub **pre-release** on this repo:
+builds a debug arm64 Linux `.deb` and a debug amd64 Windows build (zipped —
+the `.exe` needs its sibling `.dll` alongside it, so it can't ship as a bare
+`.exe`), then publishes both as a GitHub **pre-release** on this repo:
 
 ```bash
 git tag v0.1.0
