@@ -64,15 +64,18 @@ fn add_block(
 /// candidate points for item/creature placement.
 pub fn build(parent: &mut Gd<Node3D>, maze: &Maze) -> LevelInfo {
     let wall_mat = {
+        // Muted khaki-yellow "damp wallpaper" — blob water stains plus faint
+        // vertical seams where wallpaper rolls would meet.
         let tex = generate_texture(
-            64,
-            Color::from_rgba(0.80, 0.72, 0.30, 1.0),
-            Color::from_rgba(0.45, 0.40, 0.15, 1.0),
-            0.04,
+            128,
+            Color::from_rgba(0.72, 0.64, 0.36, 1.0),
+            Color::from_rgba(0.33, 0.27, 0.13, 1.0),
+            6,
             None,
+            Some((Color::from_rgba(0.5, 0.44, 0.22, 1.0), 32)),
         );
         let mut m = StandardMaterial3D::new_gd();
-        m.set_albedo(Color::from_rgba(0.80, 0.72, 0.30, 1.0));
+        m.set_albedo(Color::from_rgba(0.72, 0.64, 0.36, 1.0));
         if let Some(t) = tex {
             m.set_texture(TextureParam::ALBEDO, &t);
         }
@@ -81,14 +84,15 @@ pub fn build(parent: &mut Gd<Node3D>, maze: &Maze) -> LevelInfo {
 
     let floor_mat = {
         let tex = generate_texture(
-            64,
-            Color::from_rgba(0.35, 0.28, 0.14, 1.0),
-            Color::from_rgba(0.20, 0.16, 0.08, 1.0),
-            0.10,
+            128,
+            Color::from_rgba(0.30, 0.24, 0.13, 1.0),
+            Color::from_rgba(0.16, 0.13, 0.06, 1.0),
+            12,
+            None,
             None,
         );
         let mut m = StandardMaterial3D::new_gd();
-        m.set_albedo(Color::from_rgba(0.35, 0.28, 0.14, 1.0));
+        m.set_albedo(Color::from_rgba(0.30, 0.24, 0.13, 1.0));
         if let Some(t) = tex {
             m.set_texture(TextureParam::ALBEDO, &t);
         }
@@ -97,11 +101,12 @@ pub fn build(parent: &mut Gd<Node3D>, maze: &Maze) -> LevelInfo {
 
     let ceiling_mat = {
         let tex = generate_texture(
-            64,
+            128,
             Color::from_rgba(0.78, 0.76, 0.62, 1.0),
             Color::from_rgba(0.55, 0.53, 0.42, 1.0),
-            0.02,
-            Some((Color::from_rgba(0.5, 0.5, 0.4, 1.0), 16)),
+            4,
+            Some((Color::from_rgba(0.5, 0.5, 0.4, 1.0), 32)),
+            None,
         );
         let mut m = StandardMaterial3D::new_gd();
         m.set_albedo(Color::from_rgba(0.78, 0.76, 0.62, 1.0));

@@ -1,3 +1,4 @@
+use godot::classes::base_material_3d::Feature;
 use godot::classes::{
     Area3D, BoxMesh, CollisionShape3D, IArea3D, MeshInstance3D, SphereMesh, SphereShape3D,
     StandardMaterial3D,
@@ -35,9 +36,13 @@ impl IArea3D for Coin {
 
         let mut mesh = SphereMesh::new_gd();
         mesh.set_radius(0.22);
+        mesh.set_height(0.44); // SphereMesh radius/height are independent — a
+        // bare set_radius() with the default height leaves it stretched.
 
         let mut mat = StandardMaterial3D::new_gd();
         mat.set_albedo(Color::from_rgba(0.85, 0.7, 0.15, 1.0));
+        mat.set_feature(Feature::EMISSION, true);
+        mat.set_emission(Color::from_rgba(0.6, 0.45, 0.05, 1.0));
 
         let mut mesh_instance = MeshInstance3D::new_alloc();
         mesh_instance.set_mesh(&mesh);
@@ -84,11 +89,15 @@ impl IArea3D for AmmoPickup {
     fn ready(&mut self) {
         self.base_mut().add_to_group("ammo_pickup");
 
+        // A squat case shape reads more clearly as a pickup than a tall thin
+        // pillar (which looked cylinder-ish at a glance).
         let mut mesh = BoxMesh::new_gd();
-        mesh.set_size(Vector3::new(0.2, 0.35, 0.2));
+        mesh.set_size(Vector3::new(0.26, 0.16, 0.18));
 
         let mut mat = StandardMaterial3D::new_gd();
         mat.set_albedo(Color::from_rgba(0.3, 0.3, 0.32, 1.0));
+        mat.set_feature(Feature::EMISSION, true);
+        mat.set_emission(Color::from_rgba(0.15, 0.25, 0.35, 1.0));
 
         let mut mesh_instance = MeshInstance3D::new_alloc();
         mesh_instance.set_mesh(&mesh);
