@@ -21,6 +21,11 @@ Then open `godot/project.godot` in the Godot 4.7 editor (or run
 `godot --path godot`) — it loads the compiled library automatically via
 `overstay.gdextension`.
 
+`main.tscn` (the project's main scene) is the **Lobby** — a walkable hub with
+Solo/Multiplayer terminals (Multiplayer is locked for now). Walking into the
+Solo terminal loads `game.tscn`, the actual maze/gameplay scene. Pausing
+in-game (Esc) and choosing "quit to menu" sends you back to `main.tscn`.
+
 ## Getting a test build
 
 Push a tag matching `v*` (e.g. `v0.1.0`) and [.github/workflows/release.yml](.github/workflows/release.yml)

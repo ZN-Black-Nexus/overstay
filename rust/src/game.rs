@@ -1,3 +1,4 @@
+use godot::classes::node::ProcessMode;
 use godot::classes::{CanvasLayer, ColorRect, INode3D, Input, Label, Node3D, ProgressBar};
 use godot::global::Key;
 use godot::prelude::*;
@@ -33,11 +34,16 @@ pub struct GameRoot {
     game_over: bool,
     prev_r_held: bool,
 
+    paused: bool,
+    prev_escape_held: bool,
+    prev_q_held: bool,
+
     coins_label: Option<Gd<Label>>,
     ammo_label: Option<Gd<Label>>,
     fixation_bar: Option<Gd<ProgressBar>>,
     dread_bar: Option<Gd<ProgressBar>>,
     message_label: Option<Gd<Label>>,
+    pause_label: Option<Gd<Label>>,
     hallucination_overlay: Option<Gd<ColorRect>>,
 }
 
@@ -54,16 +60,25 @@ impl INode3D for GameRoot {
             dread: 0.0,
             game_over: false,
             prev_r_held: false,
+            paused: false,
+            prev_escape_held: false,
+            prev_q_held: false,
             coins_label: None,
             ammo_label: None,
             fixation_bar: None,
             dread_bar: None,
             message_label: None,
+            pause_label: None,
             hallucination_overlay: None,
         }
     }
 
     fn ready(&mut self) {
+        // Keep processing while the tree is paused, so this node can still see
+        // the Escape key that un-pauses it — gameplay children (Player,
+        // enemies) stay on the default PAUSABLE mode and freeze normally.
+        self.base_mut().set_process_mode(ProcessMode::ALWAYS);
+
         let maze = Maze::generate(MAZE_SIZE, MAZE_SIZE);
 
         let mut level_parent = Node3D::new_alloc();
@@ -105,6 +120,11 @@ impl INode3D for GameRoot {
     }
 
     fn process(&mut self, delta: f64) {
+        self.handle_pause_input();
+        if self.paused {
+            return;
+        }
+
         if self.game_over {
             self.handle_restart();
             return;
@@ -237,6 +257,12 @@ impl GameRoot {
         message_label.set_text("");
         hud.add_child(&message_label);
 
+        let mut pause_label = Label::new_alloc();
+        pause_label.set_position(Vector2::new(340.0, 240.0));
+        pause_label.set_size(Vector2::new(500.0, 120.0));
+        pause_label.set_text("");
+        hud.add_child(&pause_label);
+
         let mut overlay = ColorRect::new_alloc();
         overlay.set_position(Vector2::new(0.0, 0.0));
         overlay.set_size(Vector2::new(2000.0, 2000.0));
@@ -250,6 +276,7 @@ impl GameRoot {
         self.fixation_bar = Some(fixation_bar);
         self.dread_bar = Some(dread_bar);
         self.message_label = Some(message_label);
+        self.pause_label = Some(pause_label);
         self.hallucination_overlay = Some(overlay);
     }
 
@@ -283,6 +310,42 @@ impl GameRoot {
 
     fn release_mouse(&mut self) {
         Input::singleton().set_mouse_mode(godot::classes::input::MouseMode::VISIBLE);
+    }
+
+    fn handle_pause_input(&mut self) {
+        if self.game_over {
+            return;
+        }
+
+        let input = Input::singleton();
+        let escape_held = input.is_key_pressed(Key::ESCAPE);
+        if escape_held && !self.prev_escape_held {
+            self.paused = !self.paused;
+            self.base().get_tree().set_pause(self.paused);
+
+            if self.paused {
+                Input::singleton().set_mouse_mode(godot::classes::input::MouseMode::VISIBLE);
+                if let Some(l) = self.pause_label.as_mut() {
+                    l.set_text("PAUSED\n\nEsc: Resume\nQ: Quit to menu");
+                }
+            } else {
+                Input::singleton().set_mouse_mode(godot::classes::input::MouseMode::CAPTURED);
+                if let Some(l) = self.pause_label.as_mut() {
+                    l.set_text("");
+                }
+            }
+        }
+        self.prev_escape_held = escape_held;
+
+        if self.paused {
+            let q_held = input.is_key_pressed(Key::Q);
+            if q_held && !self.prev_q_held {
+                let mut tree = self.base().get_tree();
+                tree.set_pause(false);
+                let _ = tree.change_scene_to_file("res://main.tscn");
+            }
+            self.prev_q_held = q_held;
+        }
     }
 
     fn handle_restart(&mut self) {

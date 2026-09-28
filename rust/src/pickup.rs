@@ -1,13 +1,15 @@
 use godot::classes::base_material_3d::Feature;
 use godot::classes::{
-    Area3D, BoxMesh, CollisionShape3D, IArea3D, MeshInstance3D, SphereMesh, SphereShape3D,
+    Area3D, BoxMesh, CollisionShape3D, CylinderMesh, IArea3D, MeshInstance3D, SphereShape3D,
     StandardMaterial3D,
 };
 use godot::prelude::*;
+use std::f32::consts::FRAC_PI_2;
 
 use crate::player::Player;
 
 const FAKE_COIN_CHANCE: f64 = 0.12;
+const COIN_SPIN_SPEED: f32 = 2.4;
 
 /// Coins are personal loot, not shared. Visually a fake coin is indistinguishable
 /// from a real one — picking it up triggers a harmless-but-scary hallucination
@@ -34,10 +36,13 @@ impl IArea3D for Coin {
     fn ready(&mut self) {
         self.base_mut().add_to_group("coin");
 
-        let mut mesh = SphereMesh::new_gd();
-        mesh.set_radius(0.22);
-        mesh.set_height(0.44); // SphereMesh radius/height are independent — a
-        // bare set_radius() with the default height leaves it stretched.
+        // A flat disc standing on edge (tilted 90°), not a ball — a real coin
+        // shape, spun around the vertical axis each frame for the classic
+        // coin-pickup flicker.
+        let mut mesh = CylinderMesh::new_gd();
+        mesh.set_top_radius(0.22);
+        mesh.set_bottom_radius(0.22);
+        mesh.set_height(0.045);
 
         let mut mat = StandardMaterial3D::new_gd();
         mat.set_albedo(Color::from_rgba(0.85, 0.7, 0.15, 1.0));
@@ -47,6 +52,7 @@ impl IArea3D for Coin {
         let mut mesh_instance = MeshInstance3D::new_alloc();
         mesh_instance.set_mesh(&mesh);
         mesh_instance.set_surface_override_material(0, &mat);
+        mesh_instance.set_rotation(Vector3::new(0.0, 0.0, FRAC_PI_2));
         self.base_mut().add_child(&mesh_instance);
 
         let mut shape = SphereShape3D::new_gd();
@@ -56,7 +62,9 @@ impl IArea3D for Coin {
         self.base_mut().add_child(&collider);
     }
 
-    fn physics_process(&mut self, _delta: f64) {
+    fn physics_process(&mut self, delta: f64) {
+        self.base_mut().rotate_y(COIN_SPIN_SPEED * delta as f32);
+
         for body in self.base().get_overlapping_bodies().iter_shared() {
             if body.is_in_group("player") {
                 if let Some(mut player) = self.player.clone() {

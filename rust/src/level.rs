@@ -64,18 +64,20 @@ fn add_block(
 /// candidate points for item/creature placement.
 pub fn build(parent: &mut Gd<Node3D>, maze: &Maze) -> LevelInfo {
     let wall_mat = {
-        // Muted khaki-yellow "damp wallpaper" — blob water stains plus faint
-        // vertical seams where wallpaper rolls would meet.
+        // Muted khaki-yellow wallpaper — finer, more numerous grime stains
+        // read as grubby texture rather than paint smears; no seams, since
+        // those leaned too "wallpaper roll" rather than the flatter, dingier
+        // look the Backrooms are usually shown with.
         let tex = generate_texture(
             128,
-            Color::from_rgba(0.72, 0.64, 0.36, 1.0),
-            Color::from_rgba(0.33, 0.27, 0.13, 1.0),
-            6,
+            Color::from_rgba(0.70, 0.62, 0.35, 1.0),
+            Color::from_rgba(0.32, 0.26, 0.13, 1.0),
+            16,
             None,
-            Some((Color::from_rgba(0.5, 0.44, 0.22, 1.0), 32)),
+            None,
         );
         let mut m = StandardMaterial3D::new_gd();
-        m.set_albedo(Color::from_rgba(0.72, 0.64, 0.36, 1.0));
+        m.set_albedo(Color::from_rgba(0.70, 0.62, 0.35, 1.0));
         if let Some(t) = tex {
             m.set_texture(TextureParam::ALBEDO, &t);
         }

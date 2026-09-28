@@ -4,6 +4,7 @@ mod abomination;
 mod extraction_door;
 mod game;
 mod level;
+mod lobby;
 mod maze;
 mod pickup;
 mod player;

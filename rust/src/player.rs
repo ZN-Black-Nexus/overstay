@@ -1,8 +1,10 @@
 use std::collections::HashSet;
 
+use godot::classes::base_material_3d::Feature;
 use godot::classes::{
-    CapsuleShape3D, Camera3D, CharacterBody3D, CollisionShape3D, ICharacterBody3D, Input,
-    InputEvent, InputEventMouseMotion, RayCast3D,
+    BoxMesh, CapsuleShape3D, Camera3D, CharacterBody3D, CollisionShape3D, ICharacterBody3D,
+    Input, InputEvent, InputEventMouseMotion, MeshInstance3D, Node3D, RayCast3D,
+    StandardMaterial3D,
 };
 use godot::global::{Key, MouseButton};
 use godot::prelude::*;
@@ -49,6 +51,10 @@ pub struct Player {
     fire_cooldown: f32,
     knockback: Vector3,
     hallucination_timer: f32,
+
+    gun_model: Option<Gd<Node3D>>,
+    gun_rest_pos: Vector3,
+    gun_kick: f32,
 }
 
 #[godot_api]
@@ -73,6 +79,9 @@ impl ICharacterBody3D for Player {
             fire_cooldown: 0.0,
             knockback: Vector3::ZERO,
             hallucination_timer: 0.0,
+            gun_model: None,
+            gun_rest_pos: Vector3::ZERO,
+            gun_kick: 0.0,
         }
     }
 
@@ -96,6 +105,13 @@ impl ICharacterBody3D for Player {
         ray.set_target_position(Vector3::new(0.0, 0.0, -WEAPON_RANGE));
         ray.set_enabled(true);
         camera.add_child(&ray);
+
+        self.gun_rest_pos = Vector3::new(0.22, -0.22, -0.45);
+        let gun_model = build_gun_model();
+        camera.add_child(&gun_model);
+        let mut gun_model = gun_model;
+        gun_model.set_position(self.gun_rest_pos);
+        self.gun_model = Some(gun_model);
 
         self.camera = Some(camera);
         self.ray = Some(ray);
@@ -132,6 +148,7 @@ impl ICharacterBody3D for Player {
         self.handle_movement(dt);
         self.handle_weapon(dt);
         self.update_fixation(dt);
+        self.update_gun_kick(dt);
 
         if self.hallucination_timer > 0.0 {
             self.hallucination_timer -= dt;
@@ -187,6 +204,7 @@ impl Player {
 
         self.fire_cooldown = FIRE_COOLDOWN;
         self.ammo -= 1;
+        self.gun_kick = 1.0;
 
         let Some(ray) = self.ray.clone() else { return };
         if !ray.is_colliding() {
@@ -280,4 +298,46 @@ impl Player {
     pub fn kill(&mut self) {
         self.is_dead = true;
     }
+
+    fn update_gun_kick(&mut self, dt: f32) {
+        if self.gun_kick <= 0.0 {
+            return;
+        }
+        self.gun_kick = (self.gun_kick - dt * 6.0).max(0.0);
+        if let Some(gun) = self.gun_model.as_mut() {
+            let kicked = self.gun_rest_pos + Vector3::new(0.0, 0.03, 0.1) * self.gun_kick;
+            gun.set_position(kicked);
+        }
+    }
+}
+
+/// A crude primitive-built pistol silhouette (a grip box + a barrel box) worn
+/// in first person. No rigging or external model needed — same "build it from
+/// simple shapes in code" approach as the rest of the game's visuals.
+fn build_gun_model() -> Gd<Node3D> {
+    let mut root = Node3D::new_alloc();
+
+    let mut mat = StandardMaterial3D::new_gd();
+    mat.set_albedo(Color::from_rgba(0.08, 0.08, 0.09, 1.0));
+    mat.set_feature(Feature::EMISSION, true);
+    mat.set_emission(Color::from_rgba(0.05, 0.05, 0.06, 1.0));
+
+    let mut barrel_mesh = BoxMesh::new_gd();
+    barrel_mesh.set_size(Vector3::new(0.06, 0.06, 0.26));
+    let mut barrel = MeshInstance3D::new_alloc();
+    barrel.set_mesh(&barrel_mesh);
+    barrel.set_surface_override_material(0, &mat);
+    barrel.set_position(Vector3::new(0.0, 0.03, -0.08));
+    root.add_child(&barrel);
+
+    let mut grip_mesh = BoxMesh::new_gd();
+    grip_mesh.set_size(Vector3::new(0.055, 0.16, 0.055));
+    let mut grip = MeshInstance3D::new_alloc();
+    grip.set_mesh(&grip_mesh);
+    grip.set_surface_override_material(0, &mat);
+    grip.set_position(Vector3::new(0.0, -0.08, 0.04));
+    grip.set_rotation(Vector3::new(0.35, 0.0, 0.0));
+    root.add_child(&grip);
+
+    root
 }
